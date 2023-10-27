@@ -1,1 +1,33 @@
+pipeline{
+    agent any
+    stages{
+        stage('SCM checkout'){
+            steps{
+                git branch: 'main', url: 'https://github.com/shaikFayazuddin/project' 
+            }
+        }
+        stage('Build docker image'){
+            steps{
+                sh 'docker build -t fayazuddin3/myimg .'
+            }
+        }
+        stage('Push Docker image'){
+            steps{
+                withCredentials([string(credentialsId: 'docker-pwd', variable: 'dockerHubPwd')]) {
+                    sh "docker login -u fayazuddin3 -p ${dockerHubPwd}"
+                }
+                sh 'docker push fayazuddin3/myimg'
+            }
+        }
+        stage('Running Container on  Test Server'){
+            steps{
+                sshagent(['privateKey']){
+                    sh "ssh -tt -o StrictHostKeyChecking=no ec2-user@ec2-51-20-83-152.eu-north-1.compute.amazonaws.com  'docker run -p 39998:80 -d --name php fayazuddin3/myimg'"
+                }
+            }
+        }
+    }
+}
 
+
+    
